@@ -110,7 +110,7 @@ node --test www/somfy-blind-card.test.mjs
 ## Credits
 
 The Bluetooth protocol this integration speaks was first documented by **Melair**
-([mrmelair.com](https://mrmelair.com), [@MrMelair](https://x.com/MrMelair)), who
+([mrmelair.com](https://mrmelair.com), [GitHub](https://github.com/melair)), who
 reverse engineered Somfy's app to find the PIN authentication and motor commands:
 
 - [“Hacking” the Somfy Sonesse2 Zigbee Motors](https://mrmelair.com/2024/07/10/hacking-the-somfy-sonesse2-zigbee-motors/)
