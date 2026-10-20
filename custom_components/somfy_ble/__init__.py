@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 import re
 from typing import TypeAlias
 
@@ -15,6 +16,7 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv, discovery
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.loader import async_get_integration
 
 from .ble import BleTransport
 from .config_file import WRITABLE_KEYS
@@ -25,6 +27,9 @@ from .select import SIGNAL_MOTORS_CHANGED
 
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+CARD_FILE = "somfy-blind-card.js"
+CARD_URL = f"/{DOMAIN}/{CARD_FILE}"
 
 PLATFORMS: tuple[Platform, ...] = (
     Platform.BINARY_SENSOR,
@@ -74,11 +79,27 @@ def _motor_runtime(hass: HomeAssistant, name: str) -> tuple[SharedRuntime, str]:
     raise ServiceValidationError(f"Unknown Somfy motor: {name}")
 
 
+async def _async_register_card(hass: HomeAssistant) -> None:
+    """Serve the blind card and load it on every dashboard, so it needs no manual resource."""
+    # The frontend isn't loaded in some setups (and in tests); the card is optional there.
+    if hass.http is None or "frontend" not in hass.config.components:
+        return
+    from homeassistant.components.frontend import add_extra_js_url
+    from homeassistant.components.http import StaticPathConfig
+
+    version = (await async_get_integration(hass, DOMAIN)).version
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(CARD_URL, str(Path(__file__).parent / "frontend" / CARD_FILE), True)]
+    )
+    add_extra_js_url(hass, f"{CARD_URL}?v={version}")
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Load the one blind selector that spans every motor entry."""
+    """Load the one blind selector that spans every motor entry, and the blind card."""
     hass.async_create_task(
         discovery.async_load_platform(hass, Platform.SELECT, DOMAIN, {}, config)
     )
+    await _async_register_card(hass)
 
     async def _read_config(call: ServiceCall) -> ServiceResponse:
         runtime, motor_id = _motor_runtime(hass, call.data["motor"])

@@ -1,2 +1,5 @@
 homeassistant==2026.7.2
 pytest-homeassistant-custom-component==0.13.346
+aiousbwatcher
+serialx
+aioesphomeapi

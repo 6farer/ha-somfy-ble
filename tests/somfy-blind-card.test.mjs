@@ -43,7 +43,7 @@ function card() {
     }
   }
   const window = {};
-  runInNewContext(readFileSync(new URL('./somfy-blind-card.js', import.meta.url), 'utf8'), {
+  runInNewContext(readFileSync(new URL('../custom_components/somfy_ble/frontend/somfy-blind-card.js', import.meta.url), 'utf8'), {
     HTMLElement, window, setTimeout, clearTimeout, Date,
     document: { createElement: () => element() },
     customElements: { get: () => undefined, define: (_, value) => { Card = value; } },

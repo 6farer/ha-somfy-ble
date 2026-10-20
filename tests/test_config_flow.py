@@ -4,6 +4,9 @@ from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import AdvertisementData
+from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
@@ -28,6 +31,51 @@ def bypass_external_bluetooth_setup(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     monkeypatch.setattr(
         "homeassistant.setup.async_process_deps_reqs", process_dependencies
+    )
+
+
+@pytest.fixture(autouse=True)
+def no_discovered_motors(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The Bluetooth manager is not running in config-flow tests."""
+    monkeypatch.setattr(
+        "custom_components.somfy_ble.config_flow.async_discovered_service_info",
+        lambda hass, connectable=True: [],
+    )
+
+
+def _discovery(
+    address: str = "AA:BB:CC:DD:EE:FF", name: str = "Sonesse "
+) -> BluetoothServiceInfoBleak:
+    """Build the advertisement observed from a real Sonesse2 motor."""
+    device = BLEDevice(address, name, {})
+    advertisement = AdvertisementData(
+        local_name=name,
+        manufacturer_data={1480: b""},
+        service_data={},
+        service_uuids=[],
+        rssi=-60,
+        tx_power=None,
+        platform_data=(),
+    )
+    return BluetoothServiceInfoBleak(
+        name=name,
+        address=address,
+        rssi=-60,
+        manufacturer_data={1480: b""},
+        service_data={},
+        service_uuids=[],
+        source="local",
+        device=device,
+        advertisement=advertisement,
+        connectable=True,
+        time=0,
+        tx_power=None,
+    )
+
+
+async def _start_discovery(hass: HomeAssistant, address: str = "AA:BB:CC:DD:EE:FF") -> dict:
+    return await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "bluetooth"}, data=_discovery(address)
     )
 
 
@@ -88,6 +136,111 @@ async def test_address_and_pin_are_saved_with_canonical_identity(
     assert entry.unique_id == "address:aa:bb:cc:dd:ee:ff"
     _assert_secret_equal(entry.data.get(CONF_PIN), somfy_pin)
     _assert_not_exposed(somfy_pin, repr(entry), entry.title, entry.unique_id)
+
+
+@pytest.mark.asyncio
+async def test_bluetooth_discovery_shows_confirm_form(hass: HomeAssistant) -> None:
+    result = await _start_discovery(hass)
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "bluetooth_confirm"
+    assert set(result["data_schema"].schema) == {CONF_NAME, CONF_PIN}
+    assert result["data_schema"]({CONF_PIN: ""})[CONF_NAME] == "Somfy EE:FF"
+    flow = hass.config_entries.flow.async_get(result["flow_id"])
+    assert flow["context"]["title_placeholders"] == {"name": "Sonesse EE:FF"}
+
+
+@pytest.mark.asyncio
+async def test_bluetooth_confirm_creates_entry_with_user_step_identity(
+    hass: HomeAssistant, somfy_pin: str
+) -> None:
+    result = await _start_discovery(hass)
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_NAME: " Den ", CONF_PIN: somfy_pin}
+    )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["title"] == "Den"
+    assert result["data"][CONF_NAME] == "Den"
+    assert result["data"][CONF_ADDRESS] == "aa:bb:cc:dd:ee:ff"
+    _assert_secret_equal(result["data"].get(CONF_PIN), somfy_pin)
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    assert entry.unique_id == "address:aa:bb:cc:dd:ee:ff"
+
+
+@pytest.mark.asyncio
+async def test_bluetooth_confirm_rejects_invalid_pin(hass: HomeAssistant) -> None:
+    result = await _start_discovery(hass)
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_NAME: "Den", CONF_PIN: "not-a-pin"}
+    )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "bluetooth_confirm"
+    assert result["errors"] == {CONF_PIN: "invalid_value"}
+    assert not hass.config_entries.async_entries(DOMAIN)
+
+
+@pytest.mark.asyncio
+async def test_bluetooth_discovery_aborts_when_address_already_configured(
+    hass: HomeAssistant,
+) -> None:
+    MockConfigEntry(
+        domain=DOMAIN,
+        title="Den",
+        data=_entry_data("Den", address="aa:bb:cc:dd:ee:ff"),
+        unique_id="address:aa:bb:cc:dd:ee:ff",
+    ).add_to_hass(hass)
+
+    result = await _start_discovery(hass)
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+
+
+@pytest.mark.asyncio
+async def test_user_step_offers_discovered_unconfigured_motors(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    MockConfigEntry(
+        domain=DOMAIN,
+        title="Den",
+        data=_entry_data("Den", address="aa:bb:cc:dd:ee:01"),
+        unique_id="address:aa:bb:cc:dd:ee:01",
+    ).add_to_hass(hass)
+    other = _discovery("11:22:33:44:55:66")
+    other.manufacturer_data.clear()
+    # Somfy's company ID alone isn't enough: other Somfy Bluetooth products share it.
+    not_sonesse = _discovery("11:22:33:44:55:77", name="Somfy Other")
+    monkeypatch.setattr(
+        "custom_components.somfy_ble.config_flow.async_discovered_service_info",
+        lambda hass, connectable=True: [
+            _discovery("AA:BB:CC:DD:EE:01"),
+            _discovery("AA:BB:CC:DD:EE:02"),
+            other,
+            not_sonesse,
+        ],
+    )
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "user"}
+    )
+
+    address_selector = next(
+        value
+        for key, value in result["data_schema"].schema.items()
+        if key == CONF_ADDRESS
+    )
+    assert [option["value"] for option in address_selector.config["options"]] == [
+        "aa:bb:cc:dd:ee:02"
+    ]
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_NAME: "Typed", CONF_ADDRESS: "AA:BB:CC:DD:EE:03"}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_ADDRESS] == "aa:bb:cc:dd:ee:03"
 
 
 def test_protocol_supported_hex_pin_is_accepted_without_transformation() -> None:

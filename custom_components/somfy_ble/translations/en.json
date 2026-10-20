@@ -10,6 +10,14 @@
           "pin": "Printed PIN"
         }
       },
+      "bluetooth_confirm": {
+        "title": "Add Somfy Bluetooth motor",
+        "description": "Home Assistant found a Somfy motor nearby. Name it and enter the 6-character PIN printed on the motor.",
+        "data": {
+          "name": "Motor name",
+          "pin": "Printed PIN"
+        }
+      },
       "reconfigure": {
         "title": "Reconfigure Somfy motor",
         "description": "Confirm or correct the motor name and Bluetooth address. Enter a new printed PIN only when it needs to change; leave PIN blank to keep the current value.",

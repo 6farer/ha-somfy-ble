@@ -22,3 +22,6 @@ EXECUTION_CANCEL_TIMEOUT = 3.0
 
 # Release an idle authenticated connection without locking out future commands.
 BLE_SESSION_IDLE_TIMEOUT = 60.0
+
+# Bluetooth SIG company identifier seen in Sonesse advertisements (0x05C8).
+SOMFY_MANUFACTURER_ID = 1480

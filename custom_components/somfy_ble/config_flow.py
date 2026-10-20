@@ -6,11 +6,15 @@ import re
 from typing import Any
 
 import voluptuous as vol
+from homeassistant.components.bluetooth import (
+    BluetoothServiceInfoBleak,
+    async_discovered_service_info,
+)
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers import selector
 
-from .const import CONF_ADDRESS, CONF_PIN, DOMAIN
+from .const import CONF_ADDRESS, CONF_PIN, DOMAIN, SOMFY_MANUFACTURER_ID
 from .protocol import encode_pin
 
 _ADDRESS_RE = re.compile(r"^[0-9a-fA-F]{12}$|^(?:[0-9a-fA-F]{2})(?P<separator>[:-])(?:[0-9a-fA-F]{2}(?P=separator)){4}[0-9a-fA-F]{2}$")
@@ -89,6 +93,8 @@ class SomfyBleConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    _discovered_address: str
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -110,7 +116,44 @@ class SomfyBleConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_NAME): selector.TextSelector(
                     selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
                 ),
-                vol.Optional(CONF_ADDRESS, default=""): selector.TextSelector(
+                vol.Optional(CONF_ADDRESS, default=""): self._address_selector(),
+                vol.Optional(CONF_PIN, default=""): selector.TextSelector(
+                    selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+                ),
+            }
+        )
+        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+
+    async def async_step_bluetooth(
+        self, discovery_info: BluetoothServiceInfoBleak
+    ) -> ConfigFlowResult:
+        """Offer a motor found by Home Assistant Bluetooth discovery."""
+        address = _normalize_address(discovery_info.address)
+        title = f"{(discovery_info.name or '').strip() or 'Sonesse'} {address[-5:].upper()}"
+        await self.async_set_unique_id(_identity(address=address, name=title))
+        if self._identity_is_configured(address=address, name=title):
+            return self.async_abort(reason="already_configured")
+        self._abort_if_unique_id_configured()
+        self._discovered_address = address
+        self.context["title_placeholders"] = {"name": title}
+        return await self.async_step_bluetooth_confirm()
+
+    async def async_step_bluetooth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Ask only for the motor name and printed PIN of a discovered motor."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            data, errors = _validate_input(
+                {**user_input, CONF_ADDRESS: self._discovered_address}
+            )
+            if not errors:
+                return self.async_create_entry(title=data[CONF_NAME], data=data)
+
+        default_name = f"Somfy {self._discovered_address[-5:].upper()}"
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_NAME, default=default_name): selector.TextSelector(
                     selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
                 ),
                 vol.Optional(CONF_PIN, default=""): selector.TextSelector(
@@ -118,7 +161,9 @@ class SomfyBleConfigFlow(ConfigFlow, domain=DOMAIN):
                 ),
             }
         )
-        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+        return self.async_show_form(
+            step_id="bluetooth_confirm", data_schema=schema, errors=errors
+        )
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
@@ -174,6 +219,35 @@ class SomfyBleConfigFlow(ConfigFlow, domain=DOMAIN):
         )
         return self.async_show_form(
             step_id="reconfigure", data_schema=schema, errors=errors
+        )
+
+    def _address_selector(self) -> selector.Selector:
+        """Offer discovered, unconfigured motors while still allowing typed input."""
+        options = []
+        for info in async_discovered_service_info(self.hass, connectable=True):
+            if SOMFY_MANUFACTURER_ID not in info.manufacturer_data or not (
+                info.name or ""
+            ).startswith("Sonesse"):
+                continue
+            try:
+                address = _normalize_address(info.address)
+            except ValueError:
+                continue
+            name = (info.name or "").strip() or "Sonesse"
+            if self._identity_is_configured(address=address, name=name):
+                continue
+            label = f"{name} ({address.upper()})"
+            options.append(selector.SelectOptionDict(value=address, label=label))
+        if not options:
+            return selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+            )
+        return selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=options,
+                custom_value=True,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
         )
 
     @property
