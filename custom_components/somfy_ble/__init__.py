@@ -9,6 +9,7 @@ from typing import TypeAlias
 
 import voluptuous as vol
 
+from homeassistant.components import bluetooth
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
@@ -197,3 +198,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: SomfyConfigEntry) -> bo
         hass.data.pop(DOMAIN, None)
     async_dispatcher_send(hass, SIGNAL_MOTORS_CHANGED)
     return True
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: SomfyConfigEntry) -> None:
+    """Let Bluetooth discovery offer a deleted motor again without a restart."""
+    if address := entry.data.get(CONF_ADDRESS):
+        bluetooth.async_rediscover_address(hass, address.upper())

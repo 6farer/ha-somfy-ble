@@ -212,15 +212,15 @@ async def test_user_step_offers_discovered_unconfigured_motors(
     ).add_to_hass(hass)
     other = _discovery("11:22:33:44:55:66")
     other.manufacturer_data.clear()
-    # Somfy's company ID alone isn't enough: other Somfy Bluetooth products share it.
-    not_sonesse = _discovery("11:22:33:44:55:77", name="Somfy Other")
+    # Installers rename motors, and the advertised name follows ("Office L").
+    renamed = _discovery("11:22:33:44:55:77", name="Office L")
     monkeypatch.setattr(
         "custom_components.somfy_ble.config_flow.async_discovered_service_info",
         lambda hass, connectable=True: [
             _discovery("AA:BB:CC:DD:EE:01"),
             _discovery("AA:BB:CC:DD:EE:02"),
             other,
-            not_sonesse,
+            renamed,
         ],
     )
 
@@ -234,7 +234,8 @@ async def test_user_step_offers_discovered_unconfigured_motors(
         if key == CONF_ADDRESS
     )
     assert [option["value"] for option in address_selector.config["options"]] == [
-        "aa:bb:cc:dd:ee:02"
+        "aa:bb:cc:dd:ee:02",
+        "11:22:33:44:55:77",
     ]
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {CONF_NAME: "Typed", CONF_ADDRESS: "AA:BB:CC:DD:EE:03"}

@@ -8,7 +8,6 @@
   "bluetooth": [
     {
       "connectable": true,
-      "local_name": "Sonesse*",
       "manufacturer_id": 1480
     }
   ],
@@ -24,5 +23,5 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/6farer/ha-somfy-ble/issues",
   "requirements": [],
-  "version": "0.2.0"
+  "version": "0.2.1"
 }

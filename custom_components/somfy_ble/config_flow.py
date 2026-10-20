@@ -225,9 +225,7 @@ class SomfyBleConfigFlow(ConfigFlow, domain=DOMAIN):
         """Offer discovered, unconfigured motors while still allowing typed input."""
         options = []
         for info in async_discovered_service_info(self.hass, connectable=True):
-            if SOMFY_MANUFACTURER_ID not in info.manufacturer_data or not (
-                info.name or ""
-            ).startswith("Sonesse"):
+            if SOMFY_MANUFACTURER_ID not in info.manufacturer_data:
                 continue
             try:
                 address = _normalize_address(info.address)
