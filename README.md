@@ -1,54 +1,28 @@
 # Somfy Bluetooth for Home Assistant
 
+[![Release](https://img.shields.io/github/v/release/6farer/ha-somfy-ble?style=for-the-badge)](https://github.com/6farer/ha-somfy-ble/releases/latest)
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5?style=for-the-badge)](https://hacs.xyz/docs/faq/custom_repositories/)
+[![License](https://img.shields.io/github/license/6farer/ha-somfy-ble?style=for-the-badge)](LICENSE)
+
 <img src="custom_components/somfy_ble/brand/icon.png" alt="" width="96" align="right">
 
-Set up Somfy Sonesse blinds from Home Assistant over Bluetooth: upper and lower limits,
-direction, range setup, motor speed and soft start/stop.
+This Home Assistant integration is for Somfy Zigbee blinds paired directly to Home Assistant
+through Zigbee2MQTT or ZHA. The integration connects to each motor over Bluetooth so you can
+adjust its limits, direction, range, speed and soft start/stop, settings that Zigbee doesn't
+expose and that Somfy's apps can only change through a TaHoma hub.
 
 ## Why use this
 
-Pairing Somfy's Zigbee motors straight to Home Assistant (Zigbee2MQTT or ZHA) gets you open,
-close and position, but locks out Somfy's apps, which only reach motors through a TaHoma hub.
-Zigbee doesn't expose the motor's setup, so nothing is left that can set limits or change speed.
+I built this because the limits on my Zigbee2MQTT blinds drifted over time, and Somfy's TaHoma
+app can't reach blinds that aren't on a TaHoma hub. Since then I've also used it to set speeds
+room by room, so the bedroom blinds open slowly at sunrise without waking me while the office
+blinds move quickly when I want a fast adjustment.
 
-I built this because my Zigbee2MQTT blinds' limits drifted over time and the TaHoma app couldn't
-reach them. I also use it for per-room speeds: slow bedroom blinds so sunrise doesn't wake me,
-fast office blinds for quick adjustments.
+Everything runs locally in Home Assistant through your Bluetooth adapter or an ESPHome proxy,
+without a hub, a cloud service or a Somfy account.
 
-This integration does that setup locally, from Home Assistant:
-
-- **No hub, no cloud, no Somfy account.** It talks to the motor directly over Bluetooth, through
-  your adapter or an ESPHome proxy.
-- **Fix limits and direction yourself**, with the blind in view and confirmation before anything
-  is saved.
-- **Tune speed and soft start/stop**, which Zigbee doesn't expose at all.
-- **Every motor from one card**, with motors found automatically.
-
-Keep using Zigbee for everyday control. This is the setup tool alongside it.
-
-> Not affiliated with or endorsed by Somfy. The Bluetooth protocol is unofficial, built on
-> [Melair's research](#credits). Writing limits or settings to a motor is at your own risk.
-
-## Supported models
-
-Bluetooth setup is only in Somfy's newer Zigbee motors. Older RTS-only motors have no
-Bluetooth and won't work.
-
-| Motor | Status |
-|---|---|
-| Sonesse 28 WF Li-Ion Zigbee (reports as "Sonesse2") | ✅ Tested |
-| Sonesse 30 WireFree Zigbee | ❔ Untested; same generation, likely |
-| Sonesse 40 AC Zigbee (wired) | ❔ Untested |
-| Sonesse RTS / WireFree RTS | ❌ No Bluetooth |
-
-Home Assistant only discovers motors that advertise both Somfy's Bluetooth company ID and a name
-starting with `Sonesse`. If yours shows up under another name in
-[Settings > Bluetooth](https://my.home-assistant.io/redirect/bluetooth/) > **Advertisement
-monitor**, you can still add it by hand; please
-[open an issue](https://github.com/6farer/ha-somfy-ble/issues) with the model and what
-worked, either way, so this table can grow.
-
-Tested with ESPHome Bluetooth proxies on ESP32-S3 and ESP32-C3.
+> Built on [Melair's research](#credits).
+> Writing limits or settings to a motor is at your own risk.
 
 ## Quick start
 
@@ -83,8 +57,8 @@ Tested with ESPHome Bluetooth proxies on ESP32-S3 and ESP32-C3.
    Nothing discovered? See [Troubleshooting](#troubleshooting).
 
 3. **Add the card.** Edit a dashboard, add a card, and pick **Somfy blind** (or paste
-   `type: custom:somfy-blind-card`). It installs with the integration; there's no separate
-   download.
+   `type: custom:somfy-blind-card`). The card comes with the integration, so there's nothing
+   else to download.
 
 4. **Name your blinds.** On the card, pick each motor and press **Identify**: that blind jogs
    briefly. Then rename it after the room with
@@ -96,12 +70,12 @@ Tested with ESPHome Bluetooth proxies on ESP32-S3 and ESP32-C3.
 
 Each motor becomes a device with:
 
-| Platform | Entities |
-|---|---|
-| Button | Identify, Stop, Jog up, Jog down, Set upper limit, Set lower limit, Start range, Set direction clockwise / counter-clockwise, Interrogate Bluetooth |
-| Number | Jog step (motor steps) |
-| Sensor | Status, Last result, Last error, Last command ID, Selected source, Last contact age |
-| Binary sensor | BLE reachable |
+| Platform      | Entities                                                                                                                                            |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Button        | Identify, Stop, Jog up, Jog down, Set upper limit, Set lower limit, Start range, Set direction clockwise / counter-clockwise, Interrogate Bluetooth |
+| Number        | Jog step (motor steps)                                                                                                                              |
+| Sensor        | Status, Last result, Last error, Last command ID, Selected source, Last contact age                                                                 |
+| Binary sensor | BLE reachable                                                                                                                                       |
 
 Plus:
 
@@ -112,15 +86,37 @@ Plus:
   function (`stop`, `jog_up`, …) to the selected motor's entity, so scripts and dashboards
   follow the selection without per-motor edits.
 - **Actions**:
-  - `somfy_ble.read_config` (`motor`) reads the motor's settings: each value with whether it's
-    writable, its range, unit, default and choices. Changes nothing.
+  - `somfy_ble.read_config` (`motor`) reads the motor's settings without changing anything,
+    returning each value along with whether it's writable, its range, unit, default and choices.
   - `somfy_ble.write_config` (`motor`, `key`, `value`) writes one speed or ramp setting
     (`NominalSpeed`, `TiltSpeed`, `StartUpRamp`, `StartDownRamp`, `StopUpRamp`,
     `StopDownRamp`, `DisabledSoftRamps`, `DisabledSoftStartRamp`, `DisabledSoftStopRamp`). It
     needs a `read_config` of the same motor in the last 15 minutes, must stay within the
     reported range, and only counts as saved when a re-read confirms it.
 
-Commands connect on demand. Stop jumps the queue. Idle connections close after 60 seconds.
+The integration connects to a motor only when you send a command, moves Stop ahead of anything
+else waiting, and closes the connection after 60 seconds without activity.
+
+## Supported models
+
+Bluetooth setup is only in Somfy's newer Zigbee motors. Older RTS-only motors have no
+Bluetooth and won't work.
+
+| Motor                                               | Status                              |
+| --------------------------------------------------- | ----------------------------------- |
+| Sonesse 28 WF Li-Ion Zigbee (reports as "Sonesse2") | ✅ Tested                            |
+| Sonesse 30 WireFree Zigbee                          | ❔ Untested; same generation, likely |
+| Sonesse 40 AC Zigbee (wired)                        | ❔ Untested                          |
+| Sonesse RTS / WireFree RTS                          | ❌ No Bluetooth                      |
+
+Home Assistant only discovers motors that advertise both Somfy's Bluetooth company ID and a name
+starting with `Sonesse`. If yours shows up under another name in
+[Settings > Bluetooth](https://my.home-assistant.io/redirect/bluetooth/) > **Advertisement
+monitor**, you can still add it by hand; please
+[open an issue](https://github.com/6farer/ha-somfy-ble/issues) with the model and what
+worked, either way, so this table can grow.
+
+Tested with ESPHome Bluetooth proxies on ESP32-S3 and ESP32-C3.
 
 ## Troubleshooting
 
@@ -135,13 +131,14 @@ Commands connect on demand. Stop jumps the queue. Idle connections close after 6
   digits.
 - **Commands time out.** The motor is too far from any proxy. In the advertisement monitor,
   aim for better than about −85 dBm; move or add a proxy.
-- **Low battery.** Motors stop answering well before they're empty. Charge and retry.
+- **Low battery.** Motors stop answering well before they're empty, so charge the motor and try
+  again.
 
 Change a motor's name, address or PIN later with **Reconfigure** on its entry.
 
 ## Safety
 
-- Only the commands listed above are sent. There is no firmware-update path.
+- The integration sends only the commands listed above and has no way to update firmware.
 - Settings writes are limited to speed and ramp keys and checked against the range the motor
   reports.
 - Each motor's address and PIN are stored in its config entry, like any integration's
@@ -152,7 +149,8 @@ Change a motor's name, address or PIN later with **Reconfigure** on its entry.
 
 Copy `custom_components/somfy_ble/` from the
 [latest release](https://github.com/6farer/ha-somfy-ble/releases/latest) to
-`/config/custom_components/somfy_ble/` and restart Home Assistant. The card comes with it.
+`/config/custom_components/somfy_ble/` and restart Home Assistant. The card is included in that
+folder.
 
 ## Development
 
@@ -167,14 +165,13 @@ node --test tests/somfy-blind-card.test.mjs
 
 The Bluetooth protocol this integration speaks was first documented by **Melair**
 ([mrmelair.com](https://mrmelair.com), [GitHub](https://github.com/melair)), who
-reverse engineered Somfy's app to find the PIN authentication and motor commands:
+reverse engineered Somfy's app to find the PIN authentication and motor commands. This
+integration is built on the two write-ups below, and I couldn't have made it without them:
 
 - [“Hacking” the Somfy Sonesse2 Zigbee Motors](https://mrmelair.com/2024/07/10/hacking-the-somfy-sonesse2-zigbee-motors/)
   (July 2024)
 - [More BLE for the Somfy Sonesse2 Zigbee Motors](https://mrmelair.com/2024/08/22/more-ble-for-the-somfy-sonesse2-zigbee-motors/)
   (August 2024)
-
-None of this would exist without those write-ups.
 
 ## License
 

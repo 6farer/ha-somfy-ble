@@ -1,9 +1,9 @@
 # Bluetooth proxy for Somfy Bluetooth
 
-Home Assistant needs Bluetooth within a room or two of each blind. Motors heard at about
-−90 dBm or weaker mostly time out. A built-in adapter works if it's close enough. Otherwise,
-an ESP32 board ($5–10) running ESPHome as a Bluetooth proxy is the easy fix, and you can add
-one per floor.
+Home Assistant needs Bluetooth within a room or two of each blind, because motors heard at
+about −90 dBm or weaker mostly time out. If your Home Assistant's built-in adapter is close
+enough, you don't need anything else. Otherwise, an ESP32 board ($5–10) running ESPHome as a
+Bluetooth proxy covers the gap, and you can add one per floor if the house is large.
 
 **Boards:** any ESP32, ESP32-S3 or ESP32-C3. Tested: ESP32-S3-DevKitC-1, ESP32-C3 Super Mini.
 Not ESP8266 or ESP32-S2 (no Bluetooth).
@@ -35,5 +35,6 @@ bluetooth_proxy:
   connection_slots: 3
 ```
 
-Proxies must be **active** (allowed to connect), not passive. Home Assistant picks the
-closest one per motor automatically.
+The proxy has to be **active**, meaning it's allowed to open connections, because the
+integration connects to each motor rather than only listening to it. With several proxies,
+Home Assistant uses whichever one hears a motor best.

@@ -22,7 +22,7 @@ def test_manifest_declares_bluetooth_discovery_matchers() -> None:
         ).read_text(encoding="utf-8")
     )
 
-    assert manifest["version"] == "0.1.0"
+    assert manifest["version"] == "0.2.0"
     # One matcher, so a device needs both Somfy's company ID and a Sonesse name.
     assert manifest["bluetooth"] == [
         {"connectable": True, "local_name": "Sonesse*", "manufacturer_id": 1480}
