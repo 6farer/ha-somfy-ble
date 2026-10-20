@@ -1,0 +1,127 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add Somfy Bluetooth motor",
+        "description": "Enter the motor name. A Bluetooth address and printed PIN are optional.",
+        "data": {
+          "name": "Motor name",
+          "address": "Bluetooth address",
+          "pin": "Printed PIN"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Somfy motor",
+        "description": "Confirm or correct the motor name and Bluetooth address. Enter a new printed PIN only when it needs to change; leave PIN blank to keep the current value.",
+        "data": {
+          "name": "Motor name",
+          "address": "Bluetooth address",
+          "pin": "Printed PIN"
+        }
+      }
+    },
+    "error": {
+      "invalid_value": "Enter a valid value.",
+      "invalid_name": "Enter a valid motor name.",
+      "already_configured": "That motor name or Bluetooth address is already assigned to another entry."
+    },
+    "abort": {
+      "already_configured": "This motor is already configured.",
+      "reconfigure_successful": "The motor configuration was updated."
+    }
+  },
+  "entity": {
+    "button": {
+      "identify": {
+        "name": "Identify"
+      },
+      "interrogate": {
+        "name": "Interrogate Bluetooth"
+      },
+      "stop": {
+        "name": "Stop"
+      },
+      "jog_up": {
+        "name": "Jog up"
+      },
+      "jog_down": {
+        "name": "Jog down"
+      },
+      "range_start": {
+        "name": "Start range"
+      },
+      "set_direction_clockwise": {
+        "name": "Set direction clockwise"
+      },
+      "set_direction_counterclockwise": {
+        "name": "Set direction counter-clockwise"
+      },
+      "set_upper_limit": {
+        "name": "Set upper limit"
+      },
+      "set_lower_limit": {
+        "name": "Set lower limit"
+      }
+    },
+    "number": {
+      "jog_step": {
+        "name": "Jog step"
+      }
+    },
+    "binary_sensor": {
+      "ble_reachable": {
+        "name": "BLE reachable"
+      }
+    },
+    "sensor": {
+      "last_result": {
+        "name": "Last result"
+      },
+      "status": {
+        "name": "Status"
+      },
+      "selected_source": {
+        "name": "Selected source"
+      },
+      "last_error": {
+        "name": "Last error"
+      },
+      "last_command_id": {
+        "name": "Last command ID"
+      },
+      "last_contact_age": {
+        "name": "Last contact age"
+      }
+    }
+  },
+  "services": {
+    "read_config": {
+      "name": "Read motor config",
+      "description": "Read the motor configuration file (speed, ramps) over Bluetooth. Changes nothing on the motor.",
+      "fields": {
+        "motor": {
+          "name": "Motor",
+          "description": "Motor name, as in the blind selector."
+        }
+      }
+    },
+    "write_config": {
+      "name": "Write motor config",
+      "description": "Write one motor setting, then read it back. Requires a read of the same motor in the last 15 minutes that includes the setting.",
+      "fields": {
+        "motor": {
+          "name": "Motor",
+          "description": "Motor name, as in the blind selector."
+        },
+        "key": {
+          "name": "Setting",
+          "description": "Configuration key to write."
+        },
+        "value": {
+          "name": "Value",
+          "description": "New value, from the values the read reported."
+        }
+      }
+    }
+  }
+}

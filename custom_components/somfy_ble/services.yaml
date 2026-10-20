@@ -1,0 +1,33 @@
+read_config:
+  fields:
+    motor:
+      required: true
+      example: Office Sheer
+      selector:
+        text:
+write_config:
+  fields:
+    motor:
+      required: true
+      example: Office Sheer
+      selector:
+        text:
+    key:
+      required: true
+      example: NominalSpeed
+      selector:
+        select:
+          options:
+            - NominalSpeed
+            - TiltSpeed
+            - StartUpRamp
+            - StartDownRamp
+            - StopUpRamp
+            - StopDownRamp
+            - DisabledSoftRamps
+            - DisabledSoftStartRamp
+            - DisabledSoftStopRamp
+    value:
+      required: true
+      selector:
+        text:
