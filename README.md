@@ -8,8 +8,8 @@ changing motor speed and soft start/stop ramps.
 It is meant for calibration with the blind in view. Day-to-day open, close and position
 control stays with Zigbee or whatever the motor already uses.
 
-> Not affiliated with or endorsed by Somfy. The Bluetooth protocol was worked out
-> independently. Writing limits or settings to a motor is at your own risk.
+> Not affiliated with or endorsed by Somfy. The Bluetooth protocol is unofficial, built on
+> [Melair's research](#credits). Writing limits or settings to a motor is at your own risk.
 
 ## Tested hardware
 
@@ -106,6 +106,19 @@ python3.14 -m venv .venv
 .venv/bin/python -m pytest
 node --test www/somfy-blind-card.test.mjs
 ```
+
+## Credits
+
+The Bluetooth protocol this integration speaks was first documented by **Melair**
+([mrmelair.com](https://mrmelair.com), [@MrMelair](https://x.com/MrMelair)), who
+reverse engineered Somfy's app to find the PIN authentication and motor commands:
+
+- [“Hacking” the Somfy Sonesse2 Zigbee Motors](https://mrmelair.com/2024/07/10/hacking-the-somfy-sonesse2-zigbee-motors/)
+  (July 2024)
+- [More BLE for the Somfy Sonesse2 Zigbee Motors](https://mrmelair.com/2024/08/22/more-ble-for-the-somfy-sonesse2-zigbee-motors/)
+  (August 2024)
+
+None of this would exist without those write-ups.
 
 ## License
 
