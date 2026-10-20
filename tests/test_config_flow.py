@@ -147,7 +147,7 @@ async def test_bluetooth_discovery_shows_confirm_form(hass: HomeAssistant) -> No
     assert set(result["data_schema"].schema) == {CONF_NAME, CONF_PIN}
     assert result["data_schema"]({CONF_PIN: ""})[CONF_NAME] == "Somfy EE:FF"
     flow = hass.config_entries.flow.async_get(result["flow_id"])
-    assert flow["context"]["title_placeholders"] == {"name": "Sonesse EE:FF"}
+    assert flow["context"]["title_placeholders"] == {"name": "Somfy EE:FF"}
 
 
 @pytest.mark.asyncio

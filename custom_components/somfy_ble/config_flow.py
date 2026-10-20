@@ -129,7 +129,7 @@ class SomfyBleConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Offer a motor found by Home Assistant Bluetooth discovery."""
         address = _normalize_address(discovery_info.address)
-        title = f"{(discovery_info.name or '').strip() or 'Sonesse'} {address[-5:].upper()}"
+        title = f"Somfy {address[-5:].upper()}"
         await self.async_set_unique_id(_identity(address=address, name=title))
         if self._identity_is_configured(address=address, name=title):
             return self.async_abort(reason="already_configured")
@@ -150,7 +150,7 @@ class SomfyBleConfigFlow(ConfigFlow, domain=DOMAIN):
             if not errors:
                 return self.async_create_entry(title=data[CONF_NAME], data=data)
 
-        default_name = f"Somfy {self._discovered_address[-5:].upper()}"
+        default_name = self.context["title_placeholders"]["name"]
         schema = vol.Schema(
             {
                 vol.Required(CONF_NAME, default=default_name): selector.TextSelector(
