@@ -1,15 +1,17 @@
+![Somfy Bluetooth for Home Assistant: adjust limits and speed on Somfy Zigbee blinds, no TaHoma hub.](docs/images/social-preview.png)
+
 # Somfy Bluetooth for Home Assistant
 
 [![Release](https://img.shields.io/github/v/release/6farer/ha-somfy-ble?style=for-the-badge)](https://github.com/6farer/ha-somfy-ble/releases/latest)
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5?style=for-the-badge)](https://hacs.xyz/docs/faq/custom_repositories/)
 [![License](https://img.shields.io/github/license/6farer/ha-somfy-ble?style=for-the-badge)](LICENSE)
 
-<img src="custom_components/somfy_ble/brand/icon.png" alt="" width="96" align="right">
-
 This Home Assistant integration is for Somfy Zigbee blinds paired directly to Home Assistant
 through Zigbee2MQTT or ZHA. The integration connects to each motor over Bluetooth so you can
 adjust its limits, direction, range, speed and soft start/stop, settings that Zigbee doesn't
 expose and that Somfy's apps can only change through a TaHoma hub.
+
+![How it connects: Home Assistant uses a Bluetooth adapter or ESP32 proxy for limits and speed, alongside Zigbee2MQTT or ZHA for everyday open/close. Both paths reach the same Somfy motor.](docs/images/how-it-connects.png)
 
 ## Why use this
 
@@ -60,6 +62,8 @@ without a hub, a cloud service or a Somfy account.
    `type: custom:somfy-blind-card`). The card comes with the integration, so there's nothing
    else to download.
 
+   <img src="docs/images/card-setup.png" alt="The Somfy blind card's Setup tab: blind picker, Identify and Stop, connection status, jog step and jog buttons, and buttons to save the open and closed limits." width="340">
+
 4. **Name your blinds.** On the card, pick each motor and press **Identify**: that blind jogs
    briefly. Then rename it after the room with
    [Settings > Devices & services](https://my.home-assistant.io/redirect/integration/?domain=somfy_ble)
@@ -82,6 +86,9 @@ Plus:
 - **The Somfy blind card** (`custom:somfy-blind-card`): blind picker, Identify, Stop, jog,
   limits, range setup, direction, and an Advanced tab for motor speed and soft start/stop.
   It asks before saving a limit, changing direction or starting range setup.
+
+  <img src="docs/images/card-advanced.png" alt="The card's Advanced tab for Office Sheer: speed 24 rpm (10 to 28, default 20), soft start and soft stop of 1 second, the soft start and stop toggle, range setup and direction buttons." width="340">
+
 - **`select.somfy_ble_selected_blind`**: one shared picker. Its `entities` attribute maps each
   function (`stop`, `jog_up`, …) to the selected motor's entity, so scripts and dashboards
   follow the selection without per-motor edits.
