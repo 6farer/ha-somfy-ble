@@ -1,5 +1,6 @@
 """The integration serves the blind card and loads it on every dashboard."""
 
+import hashlib
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -18,7 +19,8 @@ async def test_card_is_served_and_added_to_the_frontend(
     assert config.url_path == CARD_URL
     assert Path(config.path).is_file()
     add_url.assert_called_once()
-    assert add_url.call_args.args[1].startswith(f"{CARD_URL}?v=")
+    digest = hashlib.sha256(Path(config.path).read_bytes()).hexdigest()[:12]
+    assert add_url.call_args.args[1] == f"{CARD_URL}?v={digest}"
 
 
 async def test_card_is_skipped_without_the_frontend(hass) -> None:

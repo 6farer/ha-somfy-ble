@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 from pathlib import Path
 import re
 from typing import TypeAlias
@@ -17,7 +18,6 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv, discovery
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.loader import async_get_integration
 
 from .ble import BleTransport
 from .config_file import WRITABLE_KEYS
@@ -88,11 +88,12 @@ async def _async_register_card(hass: HomeAssistant) -> None:
     from homeassistant.components.frontend import add_extra_js_url
     from homeassistant.components.http import StaticPathConfig
 
-    version = (await async_get_integration(hass, DOMAIN)).version
-    await hass.http.async_register_static_paths(
-        [StaticPathConfig(CARD_URL, str(Path(__file__).parent / "frontend" / CARD_FILE), True)]
-    )
-    add_extra_js_url(hass, f"{CARD_URL}?v={version}")
+    card = Path(__file__).parent / "frontend" / CARD_FILE
+    # Browsers cache the card for a long time, so key its URL on the content, not the
+    # release: any change to the file, including an unreleased deploy, gets a new URL.
+    digest = hashlib.sha256(await hass.async_add_executor_job(card.read_bytes)).hexdigest()[:12]
+    await hass.http.async_register_static_paths([StaticPathConfig(CARD_URL, str(card), True)])
+    add_extra_js_url(hass, f"{CARD_URL}?v={digest}")
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:

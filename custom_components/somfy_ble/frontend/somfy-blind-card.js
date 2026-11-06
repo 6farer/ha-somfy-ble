@@ -536,8 +536,15 @@ class SomfyBlindCard extends HTMLElement {
   }
 }
 
-if (!customElements.get('somfy-blind-card')) {
+function registerCard() {
+  if (customElements.get('somfy-blind-card')) return;
   customElements.define('somfy-blind-card', SomfyBlindCard);
   window.customCards = window.customCards ?? [];
   window.customCards.push({ type: 'somfy-blind-card', name: 'Somfy blind', description: 'Somfy BLE calibration: jog, limits, range setup, motor speed and soft start/stop, inspection.' });
 }
+
+// HA loads this module alongside its own frontend, which swaps in its own
+// customElements.define while it boots. A card defined before that is invisible to
+// HA ("Custom element doesn't exist"), so wait until HA's root element exists.
+if (customElements.get('home-assistant')) registerCard();
+else customElements.whenDefined('home-assistant').then(registerCard);

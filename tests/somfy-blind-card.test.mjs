@@ -46,7 +46,7 @@ function card() {
   runInNewContext(readFileSync(new URL('../custom_components/somfy_ble/frontend/somfy-blind-card.js', import.meta.url), 'utf8'), {
     HTMLElement, window, setTimeout, clearTimeout, Date,
     document: { createElement: () => element() },
-    customElements: { get: () => undefined, define: (_, value) => { Card = value; } },
+    customElements: { get: (name) => (name === 'home-assistant' ? HTMLElement : undefined), define: (_, value) => { Card = value; } },
   });
   const instance = new Card();
   instance.setConfig({});
@@ -306,4 +306,25 @@ test('motor settings read only when Advanced opens, once per blind, never on loa
   for (let i = 0; i < 10; i++) await Promise.resolve();
   assert.deepEqual(reads, ['Office Sheer', 'Kitchen']);
   release();
+});
+
+test('waits for the Home Assistant frontend before defining the card', async () => {
+  let defined = null;
+  let haReady;
+  const ready = new Promise((resolve) => { haReady = resolve; });
+  runInNewContext(readFileSync(new URL('../custom_components/somfy_ble/frontend/somfy-blind-card.js', import.meta.url), 'utf8'), {
+    HTMLElement: class {}, window: {}, setTimeout, clearTimeout, Date,
+    document: { createElement: () => ({}) },
+    customElements: {
+      get: () => undefined,
+      define: (name) => { defined = name; },
+      whenDefined: (name) => (name === 'home-assistant' ? ready : new Promise(() => {})),
+    },
+  });
+  await Promise.resolve();
+  assert.equal(defined, null);
+  haReady();
+  await ready;
+  await Promise.resolve();
+  assert.equal(defined, 'somfy-blind-card');
 });
