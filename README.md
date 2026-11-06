@@ -118,7 +118,7 @@ Bluetooth and won't work.
 
 Home Assistant discovers motors by Somfy's Bluetooth company ID. A motor advertises the
 8-character name its installer gave it, or `Sonesse` if nobody renamed it, so look for both in
-[Settings > Bluetooth](https://my.home-assistant.io/redirect/bluetooth/) > **Advertisement
+[Settings > Bluetooth](https://my.home-assistant.io/redirect/bluetooth_advertisement_monitor/) > **Advertisement
 monitor**. If your model isn't in the table, please
 [open an issue](https://github.com/6farer/ha-somfy-ble/issues) with the model and whether it
 worked, so the table can grow.
@@ -128,7 +128,7 @@ Tested with ESPHome Bluetooth proxies on ESP32-S3 and ESP32-C3.
 ## Troubleshooting
 
 - **Motor not discovered.** Check
-  [Settings > Bluetooth](https://my.home-assistant.io/redirect/bluetooth/) >
+  [Settings > Bluetooth](https://my.home-assistant.io/redirect/bluetooth_advertisement_monitor/) >
   **Advertisement monitor** for devices named `Sonesse` or the name your installer gave the motor. If none show up, no adapter or proxy
   can hear the motor; see [Bluetooth proxy](docs/bluetooth-proxy.md). If a motor shows there but isn't
   discovered, add it by hand:

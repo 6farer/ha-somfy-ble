@@ -22,7 +22,7 @@ def test_manifest_declares_bluetooth_discovery_matchers() -> None:
         ).read_text(encoding="utf-8")
     )
 
-    assert manifest["version"] == "0.2.1"
+    assert manifest["version"] == "0.2.2"
     # Motors advertise whatever 8-character name the installer gave them ("Sonesse ",
     # "Kitchen ", "Office L"), so only Somfy's company ID identifies them.
     assert manifest["bluetooth"] == [{"connectable": True, "manufacturer_id": 1480}]
